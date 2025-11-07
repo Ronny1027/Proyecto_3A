@@ -1,0 +1,308 @@
+// archivos_en_C.cpp : main project file VC2012
+
+#include <iostream>
+#include <stdio.h>
+#include <conio.h>
+#include <stdlib.h>
+#include <string.h>
+
+
+using namespace std;
+
+struct cedula { //Crea un nuevo tipo de dato
+	int numero; //Se define numero como entero
+	char nombre[25]; //Se define el nombre como caracteres
+	bool activo; //Se define activo como booleano
+};
+
+cedula arreglo[50]; //Archivo logico (Memoria RAM): coleccion estatica para guardar los registros
+int cont = 0; //Se establece el contador como entero, en cero
+
+void guardararchivo(cedula Arreglo[], int cont) { //Metodo para guardar el archivo con las personas ingresadas
+	system("CLS");//limpia la pantalla
+	cout << endl << endl;
+	FILE* archcedulas;
+	fopen_s(&archcedulas, "cedulas.txt", "w+"); //OPEN Archivo fisico (Memoria secundaria o almacenamiento externo): se abre en modo escritura (WRITE) y se crea en caso de no existir.
+
+	for (int y = 0; y < cont; y++) { //Se crea un ciclo que recorre la coleccion estatica y la imprime dentro del documento .txt
+		if (Arreglo[y].activo == true) {//solo se guardaran aquellas personas que esten activas
+			printf("Cedula: %i Nombre:  %s		-guardado- \n", arreglo[y].numero, arreglo[y].nombre); //Se imprimen las personas en la terminal
+			fprintf_s(archcedulas, "%s", Arreglo[y].nombre); //Escritura en Archivo Logico a partir de cada cedula en el arreglo
+			if (y == (cont - 1)) { fprintf_s(archcedulas, "\n%i", Arreglo[y].numero); } //Se eliminan los enter al final del archivo de texto
+			else fprintf_s(archcedulas, "\n%i\n\n", Arreglo[y].numero); //Si no esta en el ultimo elemento, agrega el salto de linea
+		}
+	}
+	fclose(archcedulas); //FLUSH, cierra el archivo fisico (cedulas.txt).
+	cout << endl << " Presione una tecla para continuar..." << endl;
+}
+
+void cargararchivo(cedula arreglo[], int& cont) {//El arreglo no debe ingresar como referencia, pero el contador si para que su valor cambie respecto a lo que se hace en la funcion
+	system("CLS"); //Limpia la pantalla
+	FILE* archcedulas; 
+	fopen_s(&archcedulas, "cedulas.txt", "r"); //OPEN Archivo fisico (Memoria secundaria o almacenamiento externo): se abre en modo lectura (READ)
+	if (archcedulas == NULL) { //Si no hay archivo
+		cout << "no se encontro el archivo" << endl; //Muestra este mensaje de que no hay archivo
+	}
+	else { //Si si hay documento
+		while (!feof(archcedulas)) { //Se inicia el ciclo while para buscar los elementos
+			fscanf_s(archcedulas, "%s", arreglo[cont].nombre, 25); //Lectura de Archivo Logico y carga cada nombre en el arreglo
+			fscanf_s(archcedulas, "%i", &arreglo[cont].numero); //Lectura de Archivo Logico y carga cada cedula en el arreglo
+			printf("\n\n  Cedula: %i Nombre:  %s		-cargado- \n", arreglo[cont].numero, arreglo[cont].nombre); //Imprime los nombres y sus cedulas en la terminal
+			arreglo[cont].activo = true;// Activa de nuevo a la persona
+			cont++; //Aumenta el contador por 1
+		}
+		fclose(archcedulas); //CLOSE, cierra el archivo fisico (cedulas.txt).
+	}
+	cout << endl << " Presione una tecla para continuar..." << endl;
+}
+
+void insertar(cedula arreglof[], int& cont) { //Metodo para insertar personas al arreglo
+	system("CLS"); //Limpia la pantalla
+	cout << endl << " ----------------  Ingresar persona  ----------------" << endl; //Titulo de la pantalla
+	cout << endl << " Digite el nombre de la persona: "; //Pide el nombre de la persona que se va a ingresar al arreglo
+	cin >> arreglof[cont].nombre; //Obtiene el nombre de la persona y la agrega al arreglo
+	cout << endl << " Digite el numero de cedula: "; //Pide la cedula de la persona que se va a ingresar al arreglo
+	cin >> arreglof[cont].numero; //Obtiene la cedula de la persona y la agrega al arreglo
+	arreglo[cont].activo = true;// activa a la persona
+	cont++; //Aumenta el contador por 1
+}
+
+void buscar_nombre(cedula arreglo[], int cont) { //Metodo para buscar una persona por nombre dentro del arreglo
+	system("CLS"); //Limpia la pantalla
+	cout << endl << " ----------------  Buscar persona por nombre  ----------------" << endl << endl << endl; //Titulo de la pagina
+	char cual[25]; //Indica que el maximo de caracteres es de 24
+	cout << " Digite el nombre que desea buscar: "; //
+	cin >> cual; //Recibe el parametro ingresado por el usuario
+	cout << endl << endl; //Dos saltos de linea
+	int i; //Variable i es entera
+	for (i = 0; i < cont; i++) { //Se ejecuta el ciclo for mientras que i sea menor al cont y se aumenta la i por 1
+		if ((strcmp(arreglo[i].nombre, cual) == 0) && (arreglo[i].activo == true)) {// compara el nombre y si esta activo
+			cout << "El numero de cedula de " << cual << " es: " << arreglo[i].numero << endl; //Se imprime la cedula de la persona buscada por nombre
+			break; //Se rompe la ejecucion
+		}
+	}
+	if (i == cont) { //Si la i llega al maximo de elementos el arreglo
+		cout << " El nombre no ha sido ingresado o fue borrado" << endl; //Se imprime este mensaje que indica que no se encontro
+	}
+}
+
+void buscar_cedula(cedula arreglo[], int cont, int cual) { //Metodo para buscar una persona por cedula dentro del arreglo
+	int i; //Se indica que i es entero
+	for (i = 0; i < cont; i++) { //Se ejecuta el ciclo for mientras que i sea menor al cont y se aumenta la i por 1
+		if ((arreglo[i].numero == cual) && (arreglo[i].activo == true)) { //Se hace una condicional que indica si la cedula buscada coincide con una cedula del arreglo y esta activa
+			cout << "El numero de cedula: " << cual << " corresponde a: " << arreglo[i].nombre << endl; //Se imprime el nombre de la persona buscada por cedula
+			break; //Se rompe la ejecucion
+		}
+	}
+	if (i == cont) { //Si la i llega al maximo de elementos el arreglo
+		cout << " El numero de cedula no ha sido ingresado o fue borrado" << endl; //Se imprime este mensaje que indica que no se encontro
+	}
+}
+
+void listarcedulas(cedula arreglo[], int cont) { //Metodo para enlistar los elementos del arreglo
+	system("CLS"); //Limpia la pantalla
+	cout << endl << " ----------------  Lista de personas  ----------------" << endl << endl; //Titulo de la pantalla
+	int numerador = 1; //Variable entera que se define como 1
+	cout << "		# Cedula		Nombre" << endl << endl; //Categorias para enlistar los datos
+	if (cont == 0) { cout << endl << "		La lista esta vacia." << endl; } //Indica si la lista esta esta vacia cuando el contador es 0
+	else {
+		for (int i = 0; i < cont; i++) { //Busca todos los elementos dentro del arreglo
+			if (arreglo[i].activo == true) { //Muestra los elementos que esten activos
+				cout << "	" << numerador << "	" << arreglo[i].numero << "		" << arreglo[i].nombre << endl; //Imprime las cedulas y los nombres en el arreglo
+				numerador++; //Aumenta el numerador por 1
+			}
+		}
+	}
+	cout << endl << endl << " ************** Fin de la lista  ***************" << endl; //Indica el final de la lista
+}
+
+int buscarparaborrar(cedula arreglo[], int& cont) { //Metodo para borrar un elemento ingresando la cedula
+	system("CLS"); //Limpia la pantalla
+	cout << endl << " ----------------  Buscar persona para borrar  ----------------" << endl << endl; //Titulo de la pantalla
+	char cual[25]; //El maximo de caracteres es 24
+	cout << " Digite el nombre que desea buscar para eliminar: "; //Solicita el nombre del elemento a borrar
+	cin >> cual; //Recibe el parametro ingresado
+	cout << endl << endl; //Doble salto de linea
+	int i; //i es entero
+	for (i = 0; i < cont; i++) { //Busca los elementos en la lista
+		if ((strcmp(arreglo[i].nombre, cual) == 0) && (arreglo[i].activo == true)) { //Si coincide en el nombre y esta activo
+			cout << endl << " Persona borrada con exito" << endl << endl; //Indica que se borro el elemento
+			cont--;//decrementa el contador para que la cuenta de personas sea precisa
+			return i;//retorna el numero de lugar en el que esta el nombre en el arreglo
+		}
+	}
+	if (i == cont) { //Si la i llega al final del la lista sin encontrar el nombre
+		cout << " El nombre no ha sido ingresado o ya fue borrado" << endl; //Imprime un mensaje de que no se encontro
+		return -1;//retorna -1 ya q la funcion es tipo entero, y al ser llamada se esper un valor de regreso
+	}
+	else return -2;//Se escribe para evitar warning
+}
+
+void main() {
+	bool menu = true;
+	while (menu) {
+		system("CLS"); //Limpia la pantalla
+		cout << endl << endl << "	-----------------	Menu Principal   -----------------" << endl << endl;
+		cout << "		1. Agregar persona" << endl;
+		cout << "		2. Buscar por nombre" << endl;
+		cout << "		3. Buscar por cedula" << endl;
+		cout << "		4. Listar todos" << endl;
+		cout << "		5. Borrar una persona" << endl;
+		cout << "		6. Guardar Arreglo a archivo" << endl;
+		cout << "		7. Cargar Arreglo desde archivo " << endl;
+		cout << "		8. Salir" << endl << endl;
+		cout << "		Digite una opcion: ";
+		int opcion = 0;
+		cin >> opcion;
+		switch (opcion) {
+		case 1: { //Opcion para ingresar una persona
+			insertar(arreglo, cont);
+			cout << endl << endl << " La persona fue ingresada correctamente." << endl << endl;
+			cout << " Presione una tecla para continuar..." << endl;
+			_getch();
+			break;
+		}
+		case 2: { //Opcion para buscar una persona por nombre
+			buscar_nombre(arreglo, cont);
+			cout << endl << " Presione una tecla para continuar..." << endl;
+			_getch();
+			break;
+		}
+		case 3: { //Opcion para buscar una persona por cedula
+			system("CLS");
+			cout << endl << " ----------------  Buscar persona por #cedula  ----------------" << endl << endl << endl;
+			int cual;
+			cout << " Digite el numero de cedula que desea buscar: ";
+			cin >> cual;
+			cout << endl << endl;
+			buscar_cedula(arreglo, cont, cual);
+			cout << endl << " Presione una tecla para continuar..." << endl;
+			_getch();
+			break;
+		}
+		case 4: { //Opcion para enlistar los datos del archivo
+			listarcedulas(arreglo, cont);
+			cout << endl << " Presione una tecla para continuar..." << endl;
+			_getch();
+			break;
+		}
+		case 5: { //Opcion para borrar un elemento del arreglo
+			arreglo[buscarparaborrar(arreglo, cont)].activo = false;// desactiva persona
+			cout << endl << " Presione una tecla para continuar..." << endl;
+			_getch();
+			break;
+		}
+		case 6: { //Opcion para guardar los datos en un archivo
+			guardararchivo(arreglo, cont);
+			_getch();
+			break;
+		}
+		case 7: { //Opcion para cargar datos desde un archivo
+			if (cont != 0) {
+				cout << endl << endl << "  Se perderan los cambios realizados en esta sesion," << endl;
+				cout << "  desea continuar(S/N): ";
+				char sino[2];
+				cin >> sino;
+				if ((strcmp(sino, "S") == 0) || (strcmp(sino, "s") == 0)) {
+					cont = 0;
+					cargararchivo(arreglo, cont);
+				}
+				else cout << " No se cargaran datos guardados. " << endl;
+			}
+			else cargararchivo(arreglo, cont);
+			_getch();
+			break;
+		}
+
+		case 8: { //Se sale del programa e imprime TEC
+			menu = false;
+			system("CLS");
+			cout << endl << endl << endl << endl << "			***********************************" << endl;
+			cout << "			*                                 *" << endl;
+			cout << "			*   *******  *******   *******    *" << endl;
+			cout << "			*      *     *         *          *" << endl;
+			cout << "			*      *     *****     *          *" << endl;
+			cout << "			*      *     *         *          *" << endl;
+			cout << "			*      *     *******   *******    *" << endl;
+			cout << "			*                                 *" << endl;
+			cout << "			***********************************" << endl << endl << endl;
+			cout << " Presione una tecla para salir..." << endl;
+			_getch();
+			break;
+		}
+		default: {
+			cout << endl << "La opcion digitada no exite" << endl << endl;
+			cout << " Presione una tecla para continuar..." << endl;
+			_getch();
+		}
+		}
+	}
+}
+
+/* Pantalla principal
+		-----------------       Menu Principal   -----------------
+
+				1. Agregar persona
+				2. Buscar por nombre
+				3. Buscar por cedula
+				4. Listar todos
+				5. Borrar una persona
+				6. Guardar Arreglo a archivo
+				7. Cargar Arreglo desde archivo
+				8. Salir
+
+				Digite una opcion:
+*/
+
+/* Personas agregadas al arreglo
+ ----------------  Lista de personas  ----------------
+
+				# Cedula                Nombre
+
+		1       341236          Yoni
+		2       623447          Sasson
+		3       346236          Ahikar
+		4       125423          Tobias
+		5       634244          Semaias
+		6       253245          Yaakov
+		7       528636          Tamar
+		8       724235          Yussef
+
+
+ ************** Fin de la lista  ***************
+
+ Presione una tecla para continuar...
+*/
+
+/* Borrar una persona
+ ----------------  Buscar persona para borrar  ----------------
+
+ Digite el nombre que desea buscar para eliminar: Semaias
+
+
+
+ Persona borrada con exito
+
+ *********************************************************************************
+
+ Presione una tecla para continuar...
+
+  ----------------  Lista de personas  ----------------
+
+				# Cedula                Nombre
+
+		1       341236          Yoni
+		2       623447          Sasson
+		3       346236          Ahikar
+		4       125423          Tobias
+		5       253245          Yaakov
+		6       528636          Tamar
+
+
+ ************** Fin de la lista  ***************
+
+ Presione una tecla para continuar...
+
+ Nota: si se borra una persona que no sea el ultimo, el codigo parece borrar dos personas, la buscada y la ultima del arreglo, en este caso, borro a Semaias y a Yussef
+ en lugar de borrar unicamente a Semaias, que fue el que se indico que se queria borrar.
+*/
