@@ -1,48 +1,52 @@
-#include <cstdio>
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <unordered_map>
-#include <vector>
-#include <algorithm>
-#include <chrono>
-#include <stdio.h>
-#define ll unsigned long long int
+// Proyecto_3A
+/*Integrantes:
+-Daniel Alejandro Arrieta Víquez
+-Ronny Espinoza Cordero
+-Cristhofer Herrera
+*/
 
-/**
- * @brief Huffman compression namespace
- */
+#define _CRT_SECURE_NO_WARNINGS // Se usa para evitar advertencias de funciones "inseguras"
+#include <cstdio>       // Manejo de archivos en C
+#include <fstream>      // Manejo de archivos en C++
+#include <iostream>     // Entrada y salida estándar
+#include <map>          // Mapa ordenado
+#include <unordered_map>// Mapa no ordenado
+#include <vector>       // Vectores dinámicos
+#include <algorithm>    // Funciones de ordenamiento
+#include <chrono>       // Medición de tiempo
+#include <stdio.h>      // Entrada/salida estándar
+#define ll unsigned long long int // Tipo para frecuencias grande
+
+// Espacio de nombres Huffman: agrupa todas las funciones y estructuras
 namespace Huffman {
 
+    // Arreglo global que guarda el código Huffman de cada carácter
     std::string HuffmanValue[256] = { "" };
 
-    /// @brief structure for storing nodes.
+    // Estructura de nodo para el árbol Huffman
     struct Node {
-        char character;
-        ll count;
-        Node* left, * right;
+        char character; // Carácter representado
+        ll count; // Frecuencia del carácter
+        Node* left, * right; // Hijos izquierdos y derechos
 
+        // Constructor para nodo interno (solo frecuencia)
         Node(ll count) {
             this->character = 0;
             this->count = count;
             this->left = this->right = nullptr;
         }
 
+        // Constructor para nodo hoja (carácter + frecuencia)
         Node(char character, ll count) {
             this->character = character;
             this->count = count;
             this->left = this->right = nullptr;
         }
     };
-    /**
-     * @brief Common function necessary for both compression and decompression.
-     */
+
+    // Utilidades comunes
     namespace Utility {
-        /**
-         * @brief Get size of the file
-         * @param filename name of the file.
-         * @returns the filesize
-         */
+        // Obtiene el tamaño de un archivo en bytes
         ll get_file_size(const char* filename) {
             FILE* p_file = fopen(filename, "rb");
             fseek(p_file, 0, SEEK_END);
@@ -50,9 +54,8 @@ namespace Huffman {
             fclose(p_file);
             return size;
         }
-        /**
-         * @brief Test function to print huffman codes for each character.
-         */
+
+        // Recorre el árbol en orden e imprime códigos Huffman
         void Inorder(Node* root, std::string& value) {
             if (root) {
                 value.push_back('0');
@@ -71,17 +74,10 @@ namespace Huffman {
         }
     };
 
-    /**
-     * @brief Functions necessary for compression.
-     */
+    // Recorre el árbol en orden e imprime códigos Huffman
     namespace CompressUtility {
 
-        /**
-         * @brief Combine two nodes
-         * @param a first node
-         * @param b second node
-         * @returns a node with a left and b right child.
-         */
+        // Combina dos nodos en uno nuevo (suma frecuencias y asigna hijos)
         Node* combine(Node* a, Node* b) {
             Node* parent = new Node((a ? a->count : 0) + (b ? b->count : 0));
             parent->left = b;
@@ -89,32 +85,23 @@ namespace Huffman {
             return parent;
         }
 
-        /**
-         * @brief comparison function.
-         * @param a first node
-         * @param b second node
-         * @returns true if first node is greater
-         */
+        // Función de comparación para ordenar nodos por frecuencia
         bool sortbysec(const Node* a, const Node* b) {
             return (a->count > b->count);
         }
 
-        /**
-         * @details Parses the file for character count
-         * @param filename name of the file.
-         * @param Filesize size of the file.
-         * @returns count of all present characters in file as a map
-        */
+        // Analiza archivo y cuenta frecuencia de cada carácter
         std::map<char, ll>parse_file(const char* filename, const ll Filesize) {
             FILE* ptr = fopen(filename, "rb");
             if (ptr == NULL) {
-                perror("Error: File not found:");
+                perror("Error: Archivo no encontrado:");
                 exit(-1);
             }
             unsigned char ch;
             ll size = 0, filesize = Filesize;
             std::vector<ll>Store(256, 0);
 
+            // Recorre archivo y cuenta ocurrencias de cada byte
             while (size != filesize) {
                 ch = fgetc(ptr);
                 ++Store[ch];
@@ -130,9 +117,8 @@ namespace Huffman {
             fclose(ptr);
             return store;
         }
-        /**
-         * @details Utility function to sort array by character count
-         */
+
+        // Ordena nodos por frecuencia
         std::vector<Node*>sort_by_character_count(const std::map<char, ll>& value) {
             std::vector<Node*> store;
             for (auto& x : value) {
@@ -141,18 +127,8 @@ namespace Huffman {
             sort(store.begin(), store.end(), sortbysec);
             return store;
         }
-        /**
-         * @brief Generate a header for the file.
-         * Format:
-         * 1. Total Unique Character (1 byte)
-         * 2. For each unique character:
-         * 2a. Character (1 byte)
-         * 2b. Length of code (1 byte)
-         * 2c. Huffman code (min: 1 byte, max: 255bytes)
-         * 3. Padding
-         * Worst case header size: 1 + (1+1)*(1+2+3+4+5+...+255) + 1 ~ 32kb... (only happens when skewed Huffman tree is generated)
-         * Best case header size: 1 + 1 + 1 + 1 + 1 = 5bytes (Happens only when a single character exists in an entire file).
-         */
+
+        // Genera header con códigos Huffman y padding
         std::string generate_header(const char padding) {
             std::string header = "";
             // UniqueCharacter start from -1 {0 means 1, 1 means 2, to conserve memory}
@@ -160,9 +136,9 @@ namespace Huffman {
 
             for (int i = 0; i < 256; ++i) {
                 if (HuffmanValue[i].size()) {
-                    header.push_back(i);
-                    header.push_back(HuffmanValue[i].size());
-                    header += HuffmanValue[i];
+                    header.push_back(i); // carácter
+                    header.push_back(HuffmanValue[i].size()); // longitud del código
+                    header += HuffmanValue[i]; // código Huffman
                     ++UniqueCharacter;
                 }
             }
@@ -170,12 +146,7 @@ namespace Huffman {
             return value + header + (char)padding;
         }
 
-        /**
-         * @details Store Huffman values for each character in string.
-         * @param root root of the huffman tree
-         * @param value binary string
-         * @returns the size of the resulting file (without the header)
-         */
+        // Almacena códigos Huffman en arreglo global y calcula tamaño comprimido
         ll store_huffman_value(const Node* root, std::string& value) {
             ll temp = 0;
             if (root) {
@@ -193,11 +164,7 @@ namespace Huffman {
             return temp;
         }
 
-        /**
-         * @details Create huffman tree during compression...
-         * @param value mapping of character counts.
-         * @returns root of the huffman tree.
-         */
+        // Genera árbol Huffman a partir de frecuencias
         Node* generate_huffman_tree(const std::map <char, ll>& value) {
             std::vector<Node*> store = sort_by_character_count(value);
             Node* one, * two, * parent;
@@ -220,27 +187,25 @@ namespace Huffman {
             one = *(store.end() - 1); two = *(store.end() - 2);
             return combine(one, two);
         }
-        /**
-         * @brief Actual compression of a file.
-         * @param filename file to be compressed.
-         * @param Filesize size of the file.
-         * @param PredictedFileSize the size of the compressed file.
-         * @returns void, but compresses the file as ${filename}.abiz
-         */
+
+        // Función principal de compresión
         void compress(const char* filename, const ll Filesize, const ll PredictedFileSize) {
+            // Calcula padding (bits sobrantes para completar último byte)
             const char padding = (8 - ((PredictedFileSize) & (7))) & (7);
             const std::string header = generate_header(padding);
-            int header_i = 0;
-            const int h_length = header.size();
+            size_t header_i = 0;
+            size_t h_length = header.size();
+
             std::cout << "Padding size: " << (int)padding << std::endl;
             FILE* iptr = fopen(filename, "rb"), * optr = fopen((std::string(filename) + ".abiz").c_str(), "wb");
             bool write_remaining = true;
 
             if (!iptr) {
-                perror("Error: File not found: ");
+                perror("Error: Archivo no encontrado: ");
                 exit(-1);
             }
 
+            // Escribe header en archivo comprimido
             while (header_i < h_length) {
                 fputc(header[header_i], optr);
                 ++header_i;
@@ -255,10 +220,11 @@ namespace Huffman {
                 const std::string& huffmanStr = HuffmanValue[ch];
                 while (huffmanStr[i] != '\0') {
                     write_remaining = true;
+                    // OR y desplazamiento: empaqueta bit en posición correcta
                     fch = fch | ((huffmanStr[i] - '0') << counter);
-                    // Decrement from 7 down to zero, and then
-                    // back again at 7
+                    // Decrece de 7 a 0, y luego regresa a 7
                     counter = (counter + 7) & 7;
+                    // Si quedaron bits sin escribir, se guardan
                     if (counter == 7) {
                         write_remaining = false;
                         fputc(fch, optr);
@@ -268,7 +234,7 @@ namespace Huffman {
                 }
                 ++size;
                 if ((size * 100 / Filesize) > ((size - 1) * 100 / Filesize)) {
-                    printf("\r%lld%% completed  ", (size * 100 / Filesize));
+                    printf("\r%lld%% completedo  ", (size * 100 / Filesize));
                 }
             }
             if (write_remaining) {
@@ -280,13 +246,11 @@ namespace Huffman {
         }
 
     };
-    /**
-     * @brief Functions necessary for decompression.
-     */
+
+    // Funciones necesarias para descompresión
     namespace DecompressUtility {
-        /**
-         * @details Generate huffman tree based on header content
-         */
+        
+        // Reconstruye árbol Huffman desde un código y un carácter
         void generate_huffman_tree(Node* const root, const std::string& codes, const unsigned char ch) {
             Node* traverse = root;
             int i = 0;
@@ -305,59 +269,50 @@ namespace Huffman {
                 }
                 ++i;
             }
-            traverse->character = ch;
+            traverse->character = ch; // asigna carácter en hoja
         }
-        /**
-         * @brief Function to store and generate a tree
-         * @param iptr file pointer
-         * @returns root of the node and pair of values,
-         * first containing padding to complete a byte and
-         * total_size
-         */
+
+        // Decodifica header y reconstruye árbol Huffman
         std::pair<Node*, std::pair<unsigned char, int>>decode_header(FILE* iptr) {
             Node* root = new Node(0);
             int charactercount, buffer, total_length = 1;
             char ch, len;
-            charactercount = fgetc(iptr);
+            charactercount = fgetc(iptr); // número de caracteres únicos -1
             std::string codes;
             ++charactercount;
             while (charactercount) {
+                // carácter y longitud del código
                 ch = fgetc(iptr);
                 codes = "";
                 len = fgetc(iptr);
                 buffer = len;
 
+                // lee el código Huffman desde el header
                 while (buffer > codes.size()) {
                     codes.push_back(fgetc(iptr));
-                }
-                // character (1byte) + length(1byte) + huffmancode(n bytes where n is length of huffmancode)
+                }             
                 total_length += codes.size() + 2;
 
                 generate_huffman_tree(root, codes, ch);
                 --charactercount;
             }
-            unsigned char padding = fgetc(iptr);
+            unsigned char padding = fgetc(iptr); // bits de relleno
             ++total_length;
             return { root, {padding, total_length} };
         }
-        /**
-         * @details Decompresses the given .abiz file.
-         * @param filename name of the file
-         * @param Filesize file size
-         * @param leftover
-         * @returns void, but decompresses the file and stores it as
-         * output${filename} (without the .abiz part)
-         */
+
+        // Función principal de descompresión
         void decompress(const char* filename, const ll Filesize, const ll leftover) {
             const std::string fl = filename;
-            FILE* iptr = fopen(fl.c_str(), "rb");
-            FILE* optr = fopen(std::string("output" + fl.substr(0, fl.size() - 5)).c_str(), "wb");
+            FILE* iptr = fopen(fl.c_str(), "rb"); // archivo comprimido
+            FILE* optr = fopen(std::string("output" + fl.substr(0, fl.size() - 5)).c_str(), "wb"); // archivo restaurado
 
             if (iptr == NULL) {
-                perror("Error: File not found");
+                perror("Error: Archivo no encontrado");
                 exit(-1);
             }
 
+            // reconstruye árbol desde header
             std::pair<Node*, std::pair<unsigned char, int>>HeaderMetadata = decode_header(iptr);
             Node* const root = HeaderMetadata.first;
             const unsigned char padding = HeaderMetadata.second.first;
@@ -370,21 +325,27 @@ namespace Huffman {
             ch = fgetc(iptr);
             while (size != filesize) {
                 while (counter >= 0) {
+                    if (traverse == nullptr) {
+                        std::cerr << "Error: nodo nulo durante la descompresión\n";
+                        break;
+                    }
+                    // usa AND (&) para verificar bit en posición "counter"
                     traverse = ch & (1 << counter) ? traverse->right : traverse->left;
-                    ch ^= (1 << counter);
+                    ch ^= (1 << counter); // limpia bit ya leído
                     --counter;
+                    // si se llega a hoja, se escribe carácter original
                     if (!traverse->left && !traverse->right) {
                         fputc(traverse->character, optr);
                         if (size == filesize - 1 && padding == counter + 1) {
                             break;
                         }
-                        traverse = root;
+                        traverse = root; // reinicia recorrido
                     }
                 }
                 ++size;
                 counter = 7;
                 if ((size * 100 / filesize) > ((size - 1) * 100 / filesize)) {
-                    printf("\r%lld%% completed, size: %lld bytes   ", (size * 100 / filesize), size);
+                    printf("\r%lld%% completedo, tamaño: %lld bytes   ", (size * 100 / filesize), size);
                 }
                 ch = fgetc(iptr);
             }
@@ -392,51 +353,56 @@ namespace Huffman {
             fclose(optr);
         }
 
-    } /// namespace DecompressUtility
+    } 
 
-}; /// namespace Huffman
+};
 
-using namespace Huffman;
+using namespace Huffman; // Usar directamente las funciones del namespace
 
 int main(int argc, char* argv[]) {
+    // Validación de argumentos: se esperan 2 parámetros (-c o -dc y el archivo)
     if (argc != 3) {
-        printf("Usage:\n (a.exe|./a.out) (-c FileToBeCompressed | -dc FileToBeDecompressed)");
+        printf("Uso:\n (a.exe|./a.out) (-c ArchivoAComprimir | -dc ArchivoADescomprimir)\n");
         exit(-1);
     }
-    const char* option = argv[1], * filename = argv[2];
+    const char* option = argv[1], * filename = argv[2]; // opción (-c o -dc) y nombre del archivo
     printf("%s\n", filename);
 
+    // Variables para medir tiempo de ejecución
     std::chrono::time_point <std::chrono::system_clock> start, end;
     std::chrono::duration <double> time;
-    ll filesize, predfilesize;
+    ll filesize = 0, predfilesize = 0;;
+    // Opción de compresión
     if (std::string(option) == "-c") {
-        filesize = Utility::get_file_size(filename);
-        auto mapper = CompressUtility::parse_file(filename, filesize);
-        Node* const root = CompressUtility::generate_huffman_tree(mapper);
+        filesize = Utility::get_file_size(filename); // obtiene tamaño original
+        auto mapper = CompressUtility::parse_file(filename, filesize); // cuenta frecuencias
+        Node* const root = CompressUtility::generate_huffman_tree(mapper); // genera árbol
         std::string buf = "";
-        predfilesize = CompressUtility::store_huffman_value(root, buf);
-        printf("Original File: %lld bytes\n", filesize);
-        printf("Compressed File Size (without header): %lld bytes\n", (predfilesize + 7) >> 3);
+        predfilesize = CompressUtility::store_huffman_value(root, buf); // calcula tamaño comprimido
+        printf("Archivo original: %lld bytes\n", filesize);
+        printf("Tamaño comprimido (sin header): %lld bytes\n", (predfilesize + 7) >> 3);
 
         start = std::chrono::system_clock::now();
-        CompressUtility::compress(filename, filesize, predfilesize);
+        CompressUtility::compress(filename, filesize, predfilesize); // comprime archivo
         end = std::chrono::system_clock::now();
 
         time = (end - start);
-        std::cout << "Compression Time: " << time.count() << "s" << std::endl;
+        std::cout << "Tiempo de compresión: " << time.count() << "s" << std::endl;
 
     }
+    // Opción de descompresión
     else if (std::string(option) == "-dc") {
-        filesize = Utility::get_file_size(filename);
+        filesize = Utility::get_file_size(filename); // tamaño del archivo comprimido
         start = std::chrono::system_clock::now();
-        DecompressUtility::decompress(filename, filesize, predfilesize);
+        DecompressUtility::decompress(filename, filesize, predfilesize); // descomprime archivo
         end = std::chrono::system_clock::now();
 
         time = (end - start);
-        std::cout << "\nDecompression Time: " << time.count() << "s" << std::endl;
+        std::cout << "\nTiempo de descompresión: " << time.count() << "s" << std::endl;
     }
+    // Opción inválida
     else {
-        std::cout << "\nInvalid Option... Exiting\n";
+        std::cout << "\nOpción inválida... Saliendo\n";
     }
-    return 0;
+    return 0; // Fin del programa
 }
